@@ -27,7 +27,11 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
-  SMTP_SECURE: z.coerce.boolean().default(false)
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  DOCUMENT_AI_PROVIDER: z.enum(["none", "neon"]).default("none"),
+  DOCUMENT_AI_MODEL: z.string().default("gpt-5-4-mini"),
+  NEON_AI_GATEWAY_BASE_URL: z.string().url().optional(),
+  NEON_AI_GATEWAY_TOKEN: z.string().optional()
 });
 
 export type Env = z.infer<typeof schema>;
