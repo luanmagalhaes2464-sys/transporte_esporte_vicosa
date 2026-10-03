@@ -7,7 +7,7 @@ export async function currentUser() {
   return prisma.user.findFirst({
     where: { id: session.userId, status: "ACTIVE" },
     include: {
-      person: true,
+      person: { include: { student: true, guardian: true } },
       roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
       schoolMemberships: { where: { active: true }, include: { school: true } }
     }
