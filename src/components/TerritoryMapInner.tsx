@@ -1,0 +1,4 @@
+"use client";
+import { MapContainer,Marker,Popup,TileLayer } from "react-leaflet";import L from "leaflet";
+type P={id:string;lat:number;lng:number;label:string;kind:string};
+export default function TerritoryMapInner({points}:{points:P[]}){const center:[number,number]=points.length?[points.reduce((s,p)=>s+p.lat,0)/points.length,points.reduce((s,p)=>s+p.lng,0)/points.length]:[-20.7539,-42.8816];const icon=L.divIcon({className:"",html:'<div style="width:18px;height:18px;border-radius:50%;background:#B51F2A;border:3px solid white;box-shadow:0 1px 5px #0005"></div>',iconSize:[18,18],iconAnchor:[9,9]});return <MapContainer center={center} zoom={12} style={{height:"100%",width:"100%"}}><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>{points.map(p=><Marker key={`${p.kind}:${p.id}`} position={[p.lat,p.lng]} icon={icon}><Popup><strong>{p.label}</strong><br/>{p.kind}</Popup></Marker>)}</MapContainer>}

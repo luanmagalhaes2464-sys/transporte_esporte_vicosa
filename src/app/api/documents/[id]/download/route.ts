@@ -1,0 +1,7 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { currentUser,permissionSet } from "@/security/authorization";
+import { storageProvider } from "@/providers/storage";
+import { audit } from "@/modules/audit/service";
+import { handleRouteError } from "@/lib/http";
+export async function GET(_:Request,ctx:{params:Promise<{id:string}>}){try{const u=await currentUser();if(!u)throw new Error('UNAUTHORIZED');const{id}=await ctx.params;const d=await prisma.document.findUniqueOrThrow({where:{id}});const perms=permissionSet(u);let allowed=d.createdById===u.id||perms.has('admin.manage')||perms.has('school_transport.request.review')||perms.has('sports.registration.manage')||perms.has('extracurricular.request.review');if(!allowed&&d.sportsRegistrationId){allowed=Boolean(await prisma.sportsRegistration.findFirst({where:{id:d.sportsRegistrationId,userId:u.id}}))}if(!allowed&&d.transportRequestId){const g=await prisma.guardian.findFirst({where:{personId:u.personId},include:{students:true}});const ids=g?.students.map(x=>x.studentId)??[];if(u.person.student)ids.push(u.person.student.id);allowed=Boolean(await prisma.schoolTransportRequest.findFirst({where:{id:d.transportRequestId,studentId:{in:ids}}}))}if(!allowed)throw new Error('FORBIDDEN');const url=await storageProvider().createDownloadUrl(d.storageKey,300);await audit({actorUserId:u.id,action:'VIEW_DOCUMENT',entityType:'document',entityId:d.id,changedFields:[]});return NextResponse.redirect(url)}catch(e){return handleRouteError(e)}}

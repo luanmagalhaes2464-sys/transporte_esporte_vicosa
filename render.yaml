@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: transporte-esporte-vicosa
+    runtime: node
+    plan: free
+    region: ohio
+    branch: main
+    autoDeployTrigger: checksPass
+    buildCommand: npm install && npm run build
+    startCommand: npm run db:deploy && npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: APP_ENV
+        value: production
+      - key: CEP_PROVIDER
+        value: viacep
+      - key: GEOCODING_PROVIDER
+        value: nominatim
+      - key: STORAGE_PROVIDER
+        value: none
+      - key: EMAIL_PROVIDER
+        value: none
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        sync: false
+      - key: APP_URL
+        sync: false

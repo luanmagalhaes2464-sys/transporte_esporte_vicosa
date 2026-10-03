@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+*.log
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+*.pem
+*.key
+*.crt
+prisma/dev.db
+
+*.tsbuildinfo

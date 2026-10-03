@@ -1,0 +1,17 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+export function VehicleForm(){
+  const[msg,setMsg]=useState(""); const router=useRouter();
+  async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);const body={identification:f.get("identification"),plate:f.get("plate"),type:f.get("type"),capacity:Number(f.get("capacity")),accessible:f.get("accessible")==="on",status:"AVAILABLE"};const r=await fetch("/api/fleet/vehicles",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)return setMsg(j.error||"Erro ao cadastrar veículo.");setMsg("Veículo cadastrado.");e.currentTarget.reset();router.refresh()}
+  return <section className="panel"><h2>Novo veículo</h2><form className="form-grid" onSubmit={submit}><div className="field full"><label>Identificação</label><input name="identification" placeholder="Ônibus 04" required/></div><div className="field"><label>Placa</label><input name="plate" required/></div><div className="field"><label>Tipo</label><select name="type"><option value="BUS">Ônibus</option><option value="MINIBUS">Micro-ônibus</option><option value="VAN">Van</option><option value="OTHER">Outro</option></select></div><div className="field"><label>Capacidade</label><input name="capacity" type="number" min="1" required/></div><div className="field"><label style={{marginTop:28}}><input name="accessible" type="checkbox"/> Acessível</label></div><div className="field full"><button className="btn-primary">Cadastrar veículo</button></div>{msg&&<div className="alert success field full">{msg}</div>}</form></section>
+}
+
+export function DriverForm(){
+  const[msg,setMsg]=useState(""); const router=useRouter();
+  async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);const body={fullName:f.get("fullName"),phone:f.get("phone"),cnh:f.get("cnh"),category:f.get("category"),cnhExpiry:f.get("cnhExpiry"),userEmail:f.get("userEmail")||undefined};const r=await fetch("/api/fleet/drivers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)return setMsg(j.error||"Erro ao cadastrar motorista.");setMsg("Motorista cadastrado.");e.currentTarget.reset();router.refresh()}
+  return <section className="panel"><h2>Novo motorista</h2><form className="form-grid" onSubmit={submit}><div className="field full"><label>Nome</label><input name="fullName" required/></div><div className="field"><label>Telefone</label><input name="phone" required/></div><div className="field"><label>CNH</label><input name="cnh" required/></div><div className="field"><label>Categoria</label><input name="category" required/></div><div className="field"><label>Validade</label><input name="cnhExpiry" type="date" required/></div><div className="field"><label>E-mail da conta (opcional)</label><input name="userEmail" type="email" placeholder="Para liberar a área mobile"/></div><div className="field full"><p className="muted">Se o motorista já criou uma conta no portal, informe o mesmo e-mail para vincular o perfil MOTORISTA.</p><button className="btn-primary">Cadastrar motorista</button></div>{msg&&<div className="alert success field full">{msg}</div>}</form></section>
+}
+
+export function AdminFleetForms(){return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginBottom:20}}><VehicleForm/><DriverForm/></div>}

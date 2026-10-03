@@ -1,0 +1,10 @@
+import { redirect } from "next/navigation";
+import { AppShell } from "@/components/AppShell";
+import { requirePermission } from "@/security/authorization";
+import { prisma } from "@/lib/prisma";
+import { AdminSportsForms } from "@/components/forms/AdminSportsForms";
+import { CallNextWaitingButton } from "@/components/forms/CallNextWaitingButton";
+import { SportsActivityStructure } from "@/components/forms/SportsActivityStructure";
+import { statusLabel } from "@/lib/labels";
+export const dynamic='force-dynamic';
+export default async function Page(){try{await requirePermission('sports.activity.manage')}catch{redirect('/cidadao')}const rows=await prisma.sportsActivity.findMany({include:{category:true,schedules:{orderBy:[{weekday:'asc'},{startTime:'asc'}]},boardingPoints:{where:{active:true},orderBy:{name:'asc'}},trips:{where:{status:{not:'CANCELED'}},orderBy:{startAt:'desc'},take:1},_count:{select:{registrations:{where:{status:'CONFIRMED'}},waitingList:{where:{status:{in:['WAITING','CALLED']}}}}}},orderBy:{registrationStart:'desc'}});return <AppShell admin><div className="page-head"><div><h1>Esporte</h1><p className="muted">Atividades, inscrições, vagas, horários, transporte e lista de espera.</p></div></div><AdminSportsForms/><div className="table-wrap"><table><thead><tr><th>Atividade</th><th>Modalidade</th><th>Vagas</th><th>Inscritos</th><th>Espera</th><th>Status</th><th>Configuração</th><th>Lista de espera</th></tr></thead><tbody>{rows.map(a=><tr key={a.id}><td>{a.name}</td><td>{a.category.name}</td><td>{a.capacity}</td><td>{a._count.registrations}</td><td>{a._count.waitingList}</td><td>{statusLabel(a.status)}</td><td><SportsActivityStructure activityId={a.id} offersTransport={a.offersTransport} schedules={a.schedules} boardingPoints={a.boardingPoints} trip={a.trips[0]?{id:a.trips[0].id,startAt:a.trips[0].startAt.toISOString(),endAt:a.trips[0].endAt.toISOString()}:null}/></td><td>{a._count.waitingList>0?<CallNextWaitingButton activityId={a.id}/>:"—"}</td></tr>)}{!rows.length&&<tr><td colSpan={8}>Nenhuma atividade cadastrada.</td></tr>}</tbody></table></div></AppShell>}

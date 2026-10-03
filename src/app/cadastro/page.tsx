@@ -1,0 +1,1 @@
+import { PublicLayout } from "@/components/PublicLayout";import { RegisterForm } from "@/components/forms/RegisterForm";export default function Page(){return <PublicLayout><div className="form-shell"><h1>Cadastro único</h1><p className="muted">Cadastre-se uma vez para transporte, esporte e demais serviços disponíveis neste portal.</p><RegisterForm/></div></PublicLayout>}

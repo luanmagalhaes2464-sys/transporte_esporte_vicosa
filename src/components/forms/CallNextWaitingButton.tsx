@@ -1,0 +1,3 @@
+"use client";
+import { useState } from "react";import { useRouter } from "next/navigation";
+export function CallNextWaitingButton({activityId}:{activityId:string}){const[busy,setBusy]=useState(false);const[msg,setMsg]=useState("");const router=useRouter();async function go(){setBusy(true);setMsg("");const r=await fetch(`/api/sports/activities/${activityId}/waitlist/call-next`,{method:"POST"});const j=await r.json();setBusy(false);if(!r.ok)return setMsg(j.error||"Não foi possível convocar.");setMsg("Próxima pessoa convocada por 48 horas.");router.refresh()}return <div style={{display:"grid",gap:4}}><button className="btn-ghost" disabled={busy} onClick={go}>{busy?"Convocando...":"Convocar próximo"}</button>{msg&&<small>{msg}</small>}</div>}
