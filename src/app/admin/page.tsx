@@ -59,7 +59,7 @@ export default async function Page() {
 
   const localityCounts = new Map<string, number>();
   for (const r of transportRows) {
-    const place = r.address.neighborhood?.name || r.address.ruralLocality?.officialName || "Localidade não identificada";
+    const place = r.address.neighborhood?.name || r.address.ruralLocality?.name || "Localidade não identificada";
     localityCounts.set(place, (localityCounts.get(place) || 0) + 1);
   }
   const localities = [...localityCounts.entries()].sort((a,b) => b[1]-a[1]).slice(0,12);
