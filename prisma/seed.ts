@@ -99,6 +99,37 @@ async function main() {
     create: { id: "00000000-0000-4000-8000-000000000101", municipalityId: municipality.id, name: "Escola Municipal Exemplo", code: "EX-001", neighborhoodId: centro.id, active: true }
   });
 
+  let transportPeriod = await prisma.schoolTransportPeriod.findFirst({
+    where: { name: "Transporte Escolar 2027", academicYear: 2027 }
+  });
+  if (transportPeriod) {
+    transportPeriod = await prisma.schoolTransportPeriod.update({
+      where: { id: transportPeriod.id },
+      data: {
+        requestStart: new Date("2026-09-01T00:00:00-03:00"),
+        requestEnd: new Date("2027-02-28T23:59:59-03:00"),
+        status: "OPEN",
+        rules: "Período de solicitação de transporte escolar para o ano letivo de 2027."
+      }
+    });
+  } else {
+    transportPeriod = await prisma.schoolTransportPeriod.create({
+      data: {
+        name: "Transporte Escolar 2027",
+        academicYear: 2027,
+        requestStart: new Date("2026-09-01T00:00:00-03:00"),
+        requestEnd: new Date("2027-02-28T23:59:59-03:00"),
+        status: "OPEN",
+        rules: "Período de solicitação de transporte escolar para o ano letivo de 2027."
+      }
+    });
+  }
+  await prisma.schoolTransportPeriodSchool.upsert({
+    where: { periodId_schoolId: { periodId: transportPeriod.id, schoolId: escola.id } },
+    update: {},
+    create: { periodId: transportPeriod.id, schoolId: escola.id }
+  });
+
   await prisma.vehicle.upsert({
     where: { plate: "ABC1D23" }, update: {},
     create: { identification: "Ônibus 04", plate: "ABC1D23", type: VehicleType.BUS, capacity: 44, accessible: true, status: VehicleStatus.AVAILABLE }

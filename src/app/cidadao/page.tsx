@@ -7,5 +7,71 @@ import { StudentForm } from "@/components/forms/StudentForm";
 import { AddressForm } from "@/components/forms/AddressForm";
 import { SportsEntryActions } from "@/components/forms/SportsEntryActions";
 import { statusLabel } from "@/lib/labels";
+
 export const dynamic="force-dynamic";
-export default async function Page(){const user=await currentUser();if(!user)redirect('/entrar');const guardian=await prisma.guardian.findFirst({where:{personId:user.personId},include:{students:{include:{student:{include:{person:true,school:true}}}}}});const studentIds=guardian?.students.map(x=>x.studentId)??[];if(user.person.student)studentIds.push(user.person.student.id);const [transport,registrations,waiting,addresses]=await Promise.all([prisma.schoolTransportRequest.findMany({where:{studentId:{in:studentIds}},include:{school:true,period:true},orderBy:{createdAt:'desc'},take:20}),prisma.sportsRegistration.findMany({where:{userId:user.id},include:{activity:true,participant:true},orderBy:{createdAt:'desc'}}),prisma.sportsWaitingList.findMany({where:{userId:user.id,status:{in:['WAITING','CALLED']}},include:{activity:true,participant:true},orderBy:{createdAt:'desc'}}),prisma.address.findMany({where:{personId:user.personId,active:true},include:{street:true,neighborhood:true,ruralLocality:true},orderBy:{createdAt:'desc'}})]);return <AppShell><div className="page-head"><div><h1>Olá, {user.person.fullName.split(' ')[0]}.</h1><p className="muted">Acompanhe seus serviços e cadastros.</p></div></div><div className="metric-grid"><div className="metric">Solicitações<strong>{transport.length}</strong></div><div className="metric">Inscrições<strong>{registrations.length}</strong></div><div className="metric">Lista de espera<strong>{waiting.length}</strong></div><div className="metric">Endereços<strong>{addresses.length}</strong></div></div><section style={{marginBottom:28}}><div className="page-head"><h2>Minhas solicitações</h2><Link className="btn-primary" href="/transporte">Solicitar transporte</Link></div><div className="table-wrap"><table><thead><tr><th>Protocolo</th><th>Serviço</th><th>Escola</th><th>Status</th></tr></thead><tbody>{transport.map(r=><tr key={r.id}><td><Link href={`/transporte/${r.id}`} style={{color:'#B51F2A',fontWeight:700}}>{r.protocol}</Link></td><td>{r.period.name}</td><td>{r.school.name}</td><td><span className="status">{statusLabel(r.status)}</span></td></tr>)}{!transport.length&&<tr><td colSpan={4}>Nenhuma solicitação enviada.</td></tr>}</tbody></table></div></section><section style={{marginBottom:28}}><h2>Minhas inscrições</h2><div className="table-wrap"><table><thead><tr><th>Participante</th><th>Atividade</th><th>Protocolo/posição</th><th>Status</th><th>Ação</th></tr></thead><tbody>{registrations.map(r=><tr key={r.id}><td>{r.participant.fullName}</td><td>{r.activity.name}</td><td>{r.protocol}</td><td>{statusLabel(r.status)}</td><td><SportsEntryActions id={r.id} kind="registration"/></td></tr>)}{waiting.map(w=><tr key={w.id}><td>{w.participant.fullName}</td><td>{w.activity.name}</td><td>Lista #{w.position}</td><td>{statusLabel(w.status)}</td><td><SportsEntryActions id={w.id} kind="waiting"/></td></tr>)}{!registrations.length&&!waiting.length&&<tr><td colSpan={5}>Nenhuma inscrição.</td></tr>}</tbody></table></div></section><details style={{marginBottom:20}}><summary style={{cursor:'pointer',fontWeight:800,fontSize:20}}>Cadastrar aluno/dependente</summary><div style={{paddingTop:18}}><StudentForm/></div></details><details><summary style={{cursor:'pointer',fontWeight:800,fontSize:20}}>Cadastrar endereço</summary><div style={{paddingTop:18}}><AddressForm/></div></details></AppShell>}
+
+export default async function Page(){
+  const user=await currentUser();
+  if(!user)redirect("/entrar");
+
+  const guardian=await prisma.guardian.findFirst({
+    where:{personId:user.personId},
+    include:{students:{include:{student:{include:{person:true,school:true}}}}}
+  });
+  const studentIds=guardian?.students.map(x=>x.studentId)??[];
+  if(user.person.student)studentIds.push(user.person.student.id);
+
+  const [transport,registrations,waiting,address]=await Promise.all([
+    prisma.schoolTransportRequest.findMany({where:{studentId:{in:studentIds}},include:{school:true,period:true},orderBy:{createdAt:"desc"},take:20}),
+    prisma.sportsRegistration.findMany({where:{userId:user.id},include:{activity:true,participant:true},orderBy:{createdAt:"desc"}}),
+    prisma.sportsWaitingList.findMany({where:{userId:user.id,status:{in:["WAITING","CALLED"]}},include:{activity:true,participant:true},orderBy:{createdAt:"desc"}}),
+    prisma.address.findFirst({where:{personId:user.personId,active:true},include:{street:true,neighborhood:true,ruralLocality:true},orderBy:[{updatedAt:"desc"},{createdAt:"desc"}]})
+  ]);
+
+  const addressText=address
+    ? (address.addressType==="URBAN"
+      ? [address.street?.name,address.number,address.neighborhood?.name].filter(Boolean).join(", ")
+      : [address.ruralLocality?.name,address.ruralRoad,address.km].filter(Boolean).join(", "))
+    : "";
+
+  return <AppShell>
+    <div className="page-head"><div><h1>Olá, {user.person.fullName.split(" ")[0]}.</h1><p className="muted">Acompanhe seus serviços e cadastros.</p></div></div>
+
+    <div className="metric-grid">
+      <div className="metric">Solicitações<strong>{transport.length}</strong></div>
+      <div className="metric">Inscrições<strong>{registrations.length}</strong></div>
+      <div className="metric">Lista de espera<strong>{waiting.length}</strong></div>
+      <div className="metric">Endereço residencial<strong style={{fontSize:18}}>{address ? "Cadastrado" : "Não cadastrado"}</strong></div>
+    </div>
+
+    <section style={{marginBottom:28}}>
+      <div className="page-head"><h2>Minhas solicitações</h2><Link className="btn-primary" href="/transporte">Solicitar transporte</Link></div>
+      <div className="table-wrap"><table><thead><tr><th>Protocolo</th><th>Serviço</th><th>Escola</th><th>Status</th></tr></thead><tbody>
+        {transport.map(r=><tr key={r.id}><td><Link href={`/transporte/${r.id}`} style={{color:"#B51F2A",fontWeight:700}}>{r.protocol}</Link></td><td>{r.period.name}</td><td>{r.school.name}</td><td><span className="status">{statusLabel(r.status)}</span></td></tr>)}
+        {!transport.length&&<tr><td colSpan={4}>Nenhuma solicitação enviada.</td></tr>}
+      </tbody></table></div>
+    </section>
+
+    <section style={{marginBottom:28}}>
+      <h2>Minhas inscrições</h2>
+      <div className="table-wrap"><table><thead><tr><th>Participante</th><th>Atividade</th><th>Protocolo/posição</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+        {registrations.map(r=><tr key={r.id}><td>{r.participant.fullName}</td><td>{r.activity.name}</td><td>{r.protocol}</td><td>{statusLabel(r.status)}</td><td><SportsEntryActions id={r.id} kind="registration"/></td></tr>)}
+        {waiting.map(w=><tr key={w.id}><td>{w.participant.fullName}</td><td>{w.activity.name}</td><td>Lista #{w.position}</td><td>{statusLabel(w.status)}</td><td><SportsEntryActions id={w.id} kind="waiting"/></td></tr>)}
+        {!registrations.length&&!waiting.length&&<tr><td colSpan={5}>Nenhuma inscrição.</td></tr>}
+      </tbody></table></div>
+    </section>
+
+    <details style={{marginBottom:20}}>
+      <summary style={{cursor:"pointer",fontWeight:800,fontSize:20}}>Cadastrar aluno/dependente</summary>
+      <div style={{paddingTop:18}}><StudentForm/></div>
+    </details>
+
+    <details>
+      <summary style={{cursor:"pointer",fontWeight:800,fontSize:20}}>{address ? "Atualizar endereço residencial" : "Cadastrar endereço residencial"}</summary>
+      <div style={{paddingTop:18}}>
+        {address && <p className="muted">Endereço atual: <strong>{addressText || "cadastrado"}</strong>. Ao salvar um novo endereço, ele substituirá o atual.</p>}
+        <AddressForm/>
+      </div>
+    </details>
+  </AppShell>;
+}

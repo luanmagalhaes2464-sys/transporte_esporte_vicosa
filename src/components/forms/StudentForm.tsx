@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type School = { id: string; name: string };
 type Issue = { field?: string; message: string };
@@ -20,6 +21,7 @@ export function StudentForm({ onCreated }: { onCreated?: () => void }) {
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [relation, setRelation] = useState("Responsável legal");
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/schools")
@@ -38,9 +40,9 @@ export function StudentForm({ onCreated }: { onCreated?: () => void }) {
       fullName: f.get("fullName"),
       cpf: f.get("cpf") || undefined,
       birthDate: f.get("birthDate"),
-      schoolId: f.get("schoolId") || undefined,
-      grade: f.get("grade") || undefined,
-      shift: f.get("shift") || undefined,
+      schoolId: f.get("schoolId"),
+      grade: f.get("grade"),
+      shift: f.get("shift"),
       relation: f.get("relation"),
       relationOther: f.get("relationOther") || undefined
     };
@@ -58,15 +60,17 @@ export function StudentForm({ onCreated }: { onCreated?: () => void }) {
     setRelation("Responsável legal");
     setMessage("Aluno/dependente cadastrado com sucesso.");
     onCreated?.();
+    router.refresh();
   }
 
   return <form onSubmit={submit} className="form-grid">
     <div className="field full"><label>Nome do aluno</label><input name="fullName" required /></div>
     <div className="field"><label>CPF (se possuir)</label><input name="cpf" inputMode="numeric" /></div>
     <div className="field"><label>Nascimento</label><input type="date" name="birthDate" required /></div>
-    <div className="field full"><label>Escola</label><select name="schoolId"><option value="">Selecionar depois</option>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-    <div className="field"><label>Ano/série</label><input name="grade" /></div>
-    <div className="field"><label>Turno</label><select name="shift"><option value="">Selecione</option><option>Manhã</option><option>Tarde</option><option>Noite</option><option>Integral</option></select></div>
+    <div className="field full"><label>Escola</label><select name="schoolId" required><option value="">Selecione</option>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+    <div className="field"><label>Ano/série</label><input name="grade" required /></div>
+    <div className="field"><label>Turno</label><select name="shift" required><option value="">Selecione</option><option>Manhã</option><option>Tarde</option><option>Noite</option><option>Integral</option></select></div>
+    <div className="field full"><small className="muted">Escola, série e turno serão reutilizados automaticamente nas solicitações de transporte escolar.</small></div>
     <div className="field full"><label>Relação com o aluno</label><select name="relation" value={relation} onChange={e => setRelation(e.target.value)} required>{RELATIONS.map(item => <option key={item} value={item}>{item}</option>)}</select></div>
     {relation === "Outro" && <div className="field full"><label>Especifique a relação</label><input name="relationOther" placeholder="Ex.: irmão, irmã, tutor..." required /></div>}
 
