@@ -29,7 +29,11 @@ button, input, select, textarea { font: inherit; }
 .btn-primary:hover { background:var(--red-dark); }
 .btn-secondary { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:0 18px; border-radius:6px; background:white; color:var(--red); font-weight:700; border:1px solid var(--red); cursor:pointer; }
 .btn-ghost { display:inline-flex; align-items:center; min-height:40px; padding:0 12px; border-radius:6px; border:1px solid var(--border); background:white; cursor:pointer; }
-.hero { position:relative; min-height:480px; background: linear-gradient(90deg, rgba(20,20,20,.74), rgba(20,20,20,.30)), url('/brand/vicosa-panorama.jpg') center/cover no-repeat, #5f6264; display:flex; align-items:center; color:white; }
+.hero { position:relative; min-height:480px; background:#303234; display:flex; align-items:center; color:white; overflow:hidden; }
+.hero-video { position:absolute; inset:0; overflow:hidden; background:#303234; }
+.hero-video iframe { position:absolute; top:50%; left:50%; width:177.78vh; min-width:100%; height:56.25vw; min-height:100%; transform:translate(-50%,-50%); border:0; pointer-events:none; }
+.hero-overlay { position:absolute; inset:0; background:linear-gradient(90deg,rgba(18,18,18,.82) 0%,rgba(18,18,18,.60) 46%,rgba(18,18,18,.30) 75%,rgba(18,18,18,.22) 100%); }
+.hero-front { position:relative; z-index:2; }
 .hero-content { max-width:640px; padding:70px 0; }
 .hero-kicker { font-size:14px; letter-spacing:.11em; font-weight:800; margin-bottom:14px; }
 .hero h1 { font-size:clamp(36px, 6vw, 64px); line-height:1.02; margin:0 0 20px; max-width: 760px; }
@@ -142,3 +146,11 @@ th { background:#fafafa; color:#555; font-weight:700; }
 .check-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:8px; border:1px solid var(--border); padding:12px; border-radius:6px; background:white; }
 .check-grid label { display:flex; align-items:center; gap:8px; font-weight:500; }
 .check-grid input { width:18px; min-height:18px; }
+
+.dashboard-filters { display:grid; grid-template-columns:repeat(4,minmax(180px,1fr)); gap:14px; align-items:end; background:white; border:1px solid var(--border); border-radius:8px; padding:18px; margin-bottom:26px; }
+.dashboard-filter-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.dashboard-section { margin:0 0 32px; }
+.dashboard-section-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:12px; }
+.dashboard-section h2 { margin-bottom:6px; }
+@media (max-width:1100px) { .dashboard-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:600px) { .dashboard-filters { grid-template-columns:1fr; padding:14px; } .dashboard-filter-actions > * { flex:1; } }

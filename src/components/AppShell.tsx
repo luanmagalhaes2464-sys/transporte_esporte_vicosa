@@ -7,12 +7,9 @@ import { currentUser, permissionSet } from "@/security/authorization";
 export async function AppShell({ children, admin = false }: { children: ReactNode; admin?: boolean }) {
   const [s, user] = await Promise.all([getPortalSettings(), currentUser()]);
   const perms = user ? permissionSet(user) : new Set<string>();
-  const roles = new Set(user?.roles.map(r => r.role.code) ?? []);
-
-  const showGeneral = roles.has("ADMIN") || roles.has("SECRETARIA") || roles.has("SECRETARIA_VIEWER");
 
   const adminItems = [
-    { href: "/admin", label: "Visão Geral", show: showGeneral },
+    { href: "/admin", label: "Visão Geral", show: perms.has("dashboard.read") || perms.has("admin.manage") },
     { href: "/admin/transporte", label: "Transporte Escolar", show: perms.has("school_transport.request.review") },
     { href: "/admin/extraclasse", label: "Extraclasse", show: perms.has("extracurricular.request.review") },
     { href: "/admin/agenda", label: "Agenda", show: perms.has("fleet.trip.read") },

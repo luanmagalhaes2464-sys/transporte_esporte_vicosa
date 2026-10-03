@@ -23,10 +23,9 @@ export async function POST(req: NextRequest) {
     await createSession({ userId: user.id, email: user.email });
 
     const roles = new Set(user.roles.map(r => r.role.code));
+    const permissions = new Set(user.roles.flatMap(r => r.role.permissions.map(p => p.permission.code)));
     let redirectTo = "/cidadao";
-    if (roles.has("SPORTS_DIRECTOR") || roles.has("SPORTS")) redirectTo = "/admin/esporte";
-    else if (roles.has("TRANSPORT_DIRECTOR") || roles.has("TRANSPORT") || roles.has("EDUCATION")) redirectTo = "/admin/transporte";
-    else if (roles.has("SECRETARIA_VIEWER") || roles.has("SECRETARIA") || roles.has("ADMIN")) redirectTo = "/admin";
+    if (permissions.has("dashboard.read") || roles.has("ADMIN")) redirectTo = "/admin";
     else if (roles.has("SCHOOL")) redirectTo = "/escola";
     else if (roles.has("DRIVER")) redirectTo = "/motorista";
 
