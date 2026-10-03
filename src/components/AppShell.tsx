@@ -9,14 +9,14 @@ export async function AppShell({ children, admin = false }: { children: ReactNod
   const perms = user ? permissionSet(user) : new Set<string>();
 
   const adminItems = [
-    { href: "/admin", label: "Visão Geral", show: ["admin.manage","school_transport.request.review","extracurricular.request.review","sports.activity.manage"].some(p => perms.has(p)) },
+    { href: "/admin", label: "Visão Geral", show: perms.has("dashboard.read") || ["admin.manage","school_transport.request.review","extracurricular.request.review","sports.activity.manage"].some(p => perms.has(p)) },
     { href: "/admin/transporte", label: "Transporte Escolar", show: perms.has("school_transport.request.review") },
     { href: "/admin/extraclasse", label: "Extraclasse", show: perms.has("extracurricular.request.review") },
     { href: "/admin/agenda", label: "Agenda", show: perms.has("fleet.trip.read") },
     { href: "/admin/veiculos", label: "Veículos", show: perms.has("fleet.vehicle.manage") },
     { href: "/admin/motoristas", label: "Motoristas", show: perms.has("fleet.driver.manage") },
     { href: "/admin/escolas", label: "Escolas", show: perms.has("school.manage") },
-    { href: "/admin/esporte", label: "Esporte", show: perms.has("sports.activity.manage") },
+    { href: "/admin/esporte", label: "Esporte", show: perms.has("sports.activity.manage") || perms.has("sports.registration.manage") },
     { href: "/admin/cidadaos", label: "Cidadãos", show: perms.has("citizens.read") },
     { href: "/admin/territorio", label: "Território", show: perms.has("territory.manage") },
     { href: "/admin/relatorios", label: "Relatórios", show: perms.has("reports.read") },

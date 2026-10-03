@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const roles = new Set(user.roles.map(r => r.role.code));
     const permissions = new Set(user.roles.flatMap(r => r.role.permissions.map(p => p.permission.code)));
     let redirectTo = "/cidadao";
-    if (roles.has("ADMIN") || roles.has("SECRETARIA") || ["school_transport.request.review","extracurricular.request.review","sports.activity.manage"].some(p => permissions.has(p))) redirectTo = "/admin";
+    if (permissions.has("dashboard.read") || roles.has("ADMIN") || ["school_transport.request.review","extracurricular.request.review","sports.activity.manage"].some(p => permissions.has(p))) redirectTo = "/admin";
     else if (roles.has("SCHOOL")) redirectTo = "/escola";
     else if (roles.has("DRIVER")) redirectTo = "/motorista";
 

@@ -12,17 +12,20 @@ const permissionCodes = [
   "extracurricular.request.create", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver",
   "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "fleet.trip.execute",
   "sports.activity.read", "sports.activity.manage", "sports.registration.create", "sports.registration.manage",
-  "citizens.read", "reports.read", "audit.read", "admin.manage"
+  "citizens.read", "reports.read", "audit.read", "dashboard.read", "admin.manage"
 ];
 
 const roles: Record<string, string[]> = {
   CITIZEN: ["profile.read", "profile.update", "school_transport.request.create", "school_transport.request.read_own", "sports.activity.read", "sports.registration.create"],
   SCHOOL: ["profile.read", "school.read", "extracurricular.request.create", "fleet.trip.read"],
-  EDUCATION: ["profile.read", "territory.read", "school.read", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "reports.read"],
-  TRANSPORT: ["profile.read", "territory.read", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "reports.read"],
-  SECRETARIA: ["profile.read", "territory.read", "territory.manage", "territory.import", "territory.merge", "school.read", "school.manage", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "citizens.read", "reports.read", "audit.read"],
+  EDUCATION: ["profile.read", "dashboard.read", "territory.read", "school.read", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "reports.read"],
+  TRANSPORT: ["profile.read", "dashboard.read", "territory.read", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "reports.read"],
+  SECRETARIA_VIEWER: ["profile.read", "dashboard.read"],
+  SPORTS_DIRECTOR: ["profile.read", "dashboard.read", "territory.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "reports.read"],
+  TRANSPORT_DIRECTOR: ["profile.read", "dashboard.read", "territory.read", "school.read", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "reports.read"],
+  SECRETARIA: ["profile.read", "dashboard.read", "territory.read", "territory.manage", "territory.import", "territory.merge", "school.read", "school.manage", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "citizens.read", "reports.read", "audit.read"],
   DRIVER: ["profile.read", "fleet.trip.read", "fleet.trip.execute"],
-  SPORTS: ["profile.read", "territory.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "reports.read"],
+  SPORTS: ["profile.read", "dashboard.read", "territory.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "reports.read"],
   ADMIN: permissionCodes
 };
 
@@ -135,8 +138,26 @@ async function main() {
     await ensureDemoUser({
       email: process.env.SEED_SECRETARIA_EMAIL,
       password: process.env.SEED_SECRETARIA_PASSWORD,
-      fullName: "Secretaria Municipal de Educação e Esportes",
-      roleCode: "SECRETARIA"
+      fullName: "Secretaria Municipal — Leitor",
+      roleCode: "SECRETARIA_VIEWER"
+    });
+  }
+
+  if (process.env.SEED_SPORTS_DIRECTOR_EMAIL && process.env.SEED_SPORTS_DIRECTOR_PASSWORD) {
+    await ensureDemoUser({
+      email: process.env.SEED_SPORTS_DIRECTOR_EMAIL,
+      password: process.env.SEED_SPORTS_DIRECTOR_PASSWORD,
+      fullName: "Diretoria Municipal de Esporte",
+      roleCode: "SPORTS_DIRECTOR"
+    });
+  }
+
+  if (process.env.SEED_TRANSPORT_DIRECTOR_EMAIL && process.env.SEED_TRANSPORT_DIRECTOR_PASSWORD) {
+    await ensureDemoUser({
+      email: process.env.SEED_TRANSPORT_DIRECTOR_EMAIL,
+      password: process.env.SEED_TRANSPORT_DIRECTOR_PASSWORD,
+      fullName: "Diretoria Municipal de Transporte",
+      roleCode: "TRANSPORT_DIRECTOR"
     });
   }
 
