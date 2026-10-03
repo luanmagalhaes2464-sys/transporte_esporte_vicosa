@@ -121,3 +121,20 @@ th { background:#fafafa; color:#555; font-weight:700; }
 .service-image-school { background-position:center 52%; }
 .service-image-extra { background-position:center 48%; }
 .service-image-sport { background-position:center 50%; }
+
+.service-image-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.service-image-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
