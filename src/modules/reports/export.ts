@@ -12,7 +12,7 @@ export function toXlsx(rows: Record<string, unknown>[], sheetName = "Relatório"
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
-  return XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;\n  return Uint8Array.from(buffer).buffer;
 }
 
 export async function toPdf(title: string, rows: Record<string, unknown>[]) {
@@ -29,5 +29,5 @@ export async function toPdf(title: string, rows: Record<string, unknown>[]) {
   };
   if (headers.length) line(headers.join(" | "), true);
   for (const row of rows) line(headers.map(h=>String(row[h]??"")).join(" | "));
-  return Buffer.from(await doc.save());
+  return Uint8Array.from(await doc.save()).buffer;
 }
