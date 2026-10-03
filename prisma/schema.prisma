@@ -138,6 +138,10 @@ enum ExtraActivityType {
   TOUR
   OTHER
 }
+enum ExtraShift {
+  MORNING
+  AFTERNOON
+}
 enum VehicleType {
   BUS
   MINIBUS
@@ -623,6 +627,9 @@ model ExtracurricularRequest {
   activity              String
   purpose               ExtraActivityType
   purposeOther          String?
+  shift                 ExtraShift?
+  directorName          String?
+  termsAcceptedAt       DateTime?
   departureAt           DateTime
   returnAt              DateTime
   origin                String
