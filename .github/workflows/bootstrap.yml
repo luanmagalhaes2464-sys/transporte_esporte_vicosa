@@ -27,7 +27,7 @@ jobs:
           base64 -d /tmp/payload.b64 > /tmp/project.tar.xz
           echo "739942e4c63aae22bd5f72337dd57a84ddce4dc4a3ce7554848ba15b8aa144e1  /tmp/project.tar.xz" | sha256sum -c -
           tar -xJf /tmp/project.tar.xz -C .
-          rm -f .github/workflows/bootstrap.yml
+          rm -f .github/workflows/bootstrap.yml\n          rm -f .github/workflows/ci.yml
 
       - name: Commit source
         run: |
