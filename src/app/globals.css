@@ -41,7 +41,7 @@ button, input, select, textarea { font: inherit; }
 .section-lead { color:var(--muted); margin:0 0 28px; max-width:720px; line-height:1.6; }
 .service-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; }
 .service-card { border:1px solid var(--border); background:white; overflow:hidden; border-radius:8px; }
-.service-image { height:190px; background:#ddd center/cover no-repeat; }
+.service-image { width:100%; aspect-ratio:16/9; background-color:#eee; background-size:cover; background-repeat:no-repeat; }
 .service-body { padding:24px; }
 .service-body h3 { margin:0 0 10px; font-size:22px; }
 .service-body p { color:var(--muted); line-height:1.55; min-height:72px; }
@@ -117,3 +117,7 @@ th { background:#fafafa; color:#555; font-weight:700; }
 .footer-brand .brand-lockup > div:last-child > div:first-child { color:#fff; }
 .footer-brand .brand-subtitle { color:#d3d3d3 !important; }
 @media (max-width:600px) { .app-header-inner { padding:0 14px; } }
+
+.service-image-school { background-position:center 52%; }
+.service-image-extra { background-position:center 48%; }
+.service-image-sport { background-position:center 50%; }
