@@ -22,12 +22,12 @@ export async function POST(req:NextRequest){
 
     const [neighborhood,street,district,rural]=await Promise.all([
       v.neighborhoodId?prisma.neighborhood.findFirst({where:{id:v.neighborhoodId,municipalityId,active:true},select:{id:true}}):null,
-      v.streetId?prisma.street.findFirst({where:{id:v.streetId,municipalityId,active:true},include:{neighborhoodLinks:true}}):null,
+      v.streetId?prisma.street.findFirst({where:{id:v.streetId,municipalityId,active:true},include:{neighborhoods:true}}):null,
       v.districtId?prisma.district.findFirst({where:{id:v.districtId,municipalityId,active:true},select:{id:true}}):null,
       v.ruralLocalityId?prisma.ruralLocality.findFirst({where:{id:v.ruralLocalityId,municipalityId,active:true},select:{id:true,districtId:true}}):null
     ]);
     if((v.neighborhoodId&&!neighborhood)||(v.streetId&&!street)||(v.districtId&&!district)||(v.ruralLocalityId&&!rural))throw new Error("TERRITORY_REFERENCE_INVALID");
-    if(street&&v.neighborhoodId&&street.neighborhoodLinks.length>0&&!street.neighborhoodLinks.some(x=>x.neighborhoodId===v.neighborhoodId))throw new Error("TERRITORY_REFERENCE_INVALID");
+    if(street&&v.neighborhoodId&&street.neighborhoods.length>0&&!street.neighborhoods.some(x=>x.neighborhoodId===v.neighborhoodId))throw new Error("TERRITORY_REFERENCE_INVALID");
     if(rural?.districtId&&v.districtId&&rural.districtId!==v.districtId)throw new Error("TERRITORY_REFERENCE_INVALID");
 
     const row=await prisma.address.create({data:{personId:u.personId,municipalityId,...v,verified:false}});
