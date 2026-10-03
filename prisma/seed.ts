@@ -26,6 +26,29 @@ const roles: Record<string, string[]> = {
   ADMIN: permissionCodes
 };
 
+async function ensureDemoUser({ email, password, fullName, roleCode, schoolId }: { email: string; password: string; fullName: string; roleCode: string; schoolId?: string }) {
+  const normalizedEmail = email.toLowerCase();
+  const passwordHash = await argon2.hash(password);
+  let user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+  if (user) {
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash, status: "ACTIVE" } });
+    await prisma.person.update({ where: { id: user.personId }, data: { fullName, email: normalizedEmail } });
+  } else {
+    const person = await prisma.person.create({ data: { fullName, email: normalizedEmail } });
+    user = await prisma.user.create({ data: { personId: person.id, email: normalizedEmail, passwordHash } });
+  }
+
+  const role = await prisma.role.findUniqueOrThrow({ where: { code: roleCode } });
+  await prisma.userRole.deleteMany({ where: { userId: user.id } });
+  await prisma.userRole.create({ data: { userId: user.id, roleId: role.id } });
+
+  await prisma.schoolUser.deleteMany({ where: { userId: user.id } });
+  if (schoolId) {
+    await prisma.schoolUser.create({ data: { schoolId, userId: user.id, active: true } });
+  }
+}
+
 async function main() {
   const municipality = await prisma.municipality.upsert({
     where: { name_state: { name: "Viçosa", state: "MG" } },
@@ -97,6 +120,25 @@ async function main() {
       status: SportsActivityStatus.OPEN
     }
   });
+
+  if (process.env.SEED_SCHOOL_EMAIL && process.env.SEED_SCHOOL_PASSWORD) {
+    await ensureDemoUser({
+      email: process.env.SEED_SCHOOL_EMAIL,
+      password: process.env.SEED_SCHOOL_PASSWORD,
+      fullName: "Escola Municipal Exemplo",
+      roleCode: "SCHOOL",
+      schoolId: escola.id
+    });
+  }
+
+  if (process.env.SEED_SECRETARIA_EMAIL && process.env.SEED_SECRETARIA_PASSWORD) {
+    await ensureDemoUser({
+      email: process.env.SEED_SECRETARIA_EMAIL,
+      password: process.env.SEED_SECRETARIA_PASSWORD,
+      fullName: "Secretaria Municipal de Educação e Esportes",
+      roleCode: "SECRETARIA"
+    });
+  }
 
   if (process.env.SEED_ADMIN_EMAIL && process.env.SEED_ADMIN_PASSWORD) {
     const email = process.env.SEED_ADMIN_EMAIL.toLowerCase();
