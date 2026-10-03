@@ -1,6 +1,18 @@
 import { NextRequest,NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requirePermission } from "@/security/authorization";
+import { currentUser,permissionSet } from "@/security/authorization";
 import { handleRouteError } from "@/lib/http";
 import { toCsv,toPdf,toXlsx } from "@/modules/reports/export";
-export async function GET(req:NextRequest){try{await requirePermission('reports.read');const rows=(await prisma.schoolTransportRequest.findMany({include:{student:{include:{person:true}},school:true,address:{include:{neighborhood:true,ruralLocality:true}},period:true},orderBy:{createdAt:'desc'}})).map(r=>({protocolo:r.protocol,aluno:r.student.person.fullName,escola:r.school.name,ano:r.period.academicYear,bairro:r.address.neighborhood?.name??'',localidade_rural:r.address.ruralLocality?.name??'',turno:r.shift??'',status:r.status}));const f=req.nextUrl.searchParams.get('format')??'csv';if(f==='xlsx')return new NextResponse(toXlsx(rows,'Transporte'),{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':'attachment; filename="transporte.xlsx"'}});if(f==='pdf')return new NextResponse(await toPdf('Relatório de Transporte Escolar',rows),{headers:{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="transporte.pdf"'}});return new NextResponse(toCsv(rows),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="transporte.csv"'}})}catch(e){return handleRouteError(e)}}
+
+export async function GET(req:NextRequest){
+  try{
+    const user=await currentUser();if(!user)throw new Error("UNAUTHORIZED");
+    const perms=permissionSet(user);
+    if(!(perms.has("school_transport.request.review")||perms.has("admin.manage")))throw new Error("FORBIDDEN");
+    const rows=(await prisma.schoolTransportRequest.findMany({include:{student:{include:{person:true}},school:true,address:{include:{neighborhood:true,ruralLocality:true}},period:true},orderBy:{createdAt:"desc"}})).map(r=>({protocolo:r.protocol,aluno:r.student.person.fullName,escola:r.school.name,ano:r.period.academicYear,bairro:r.address.neighborhood?.name??"",localidade_rural:r.address.ruralLocality?.name??"",turno:r.shift??"",status:r.status}));
+    const f=req.nextUrl.searchParams.get("format")??"csv";
+    if(f==="xlsx")return new NextResponse(toXlsx(rows,"Transporte"),{headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Content-Disposition":'attachment; filename="transporte.xlsx"'}});
+    if(f==="pdf")return new NextResponse(await toPdf("Relatório de Transporte Escolar",rows),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="transporte.pdf"'}});
+    return new NextResponse(toCsv(rows),{headers:{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":'attachment; filename="transporte.csv"'}});
+  }catch(e){return handleRouteError(e)}
+}

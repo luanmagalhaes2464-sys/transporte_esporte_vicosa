@@ -1,3 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { destroySession } from "@/security/session";
-export async function POST() { await destroySession(); return NextResponse.json({ ok: true }); }
+
+export async function POST(req: NextRequest) {
+  await destroySession();
+  return NextResponse.redirect(new URL("/", req.url), 303);
+}

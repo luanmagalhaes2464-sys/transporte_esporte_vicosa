@@ -1,1 +1,19 @@
-import { NextRequest,NextResponse } from "next/server";import { prisma } from "@/lib/prisma";import { requirePermission } from "@/security/authorization";import { handleRouteError } from "@/lib/http";import { toCsv,toPdf,toXlsx } from "@/modules/reports/export";export async function GET(req:NextRequest){try{await requirePermission('reports.read');const rows=(await prisma.sportsActivity.findMany({include:{category:true,_count:{select:{registrations:{where:{status:'CONFIRMED'}},waitingList:{where:{status:{in:['WAITING','CALLED']}}}}}},orderBy:{name:'asc'}})).map(a=>({atividade:a.name,modalidade:a.category.name,vagas:a.capacity,inscritos:a._count.registrations,espera:a._count.waitingList,status:a.status}));const f=req.nextUrl.searchParams.get('format')??'csv';if(f==='xlsx')return new NextResponse(toXlsx(rows,'Esporte'),{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':'attachment; filename="esporte.xlsx"'}});if(f==='pdf')return new NextResponse(await toPdf('Relatório de Esporte',rows),{headers:{'Content-Type':'application/pdf','Content-Disposition':'attachment; filename="esporte.pdf"'}});return new NextResponse(toCsv(rows),{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="esporte.csv"'}})}catch(e){return handleRouteError(e)}}
+import { NextRequest,NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { currentUser, permissionSet } from "@/security/authorization";
+import { handleRouteError } from "@/lib/http";
+import { toCsv,toPdf,toXlsx } from "@/modules/reports/export";
+
+export async function GET(req:NextRequest){
+  try{
+    const user=await currentUser();
+    if(!user)throw new Error("UNAUTHORIZED");
+    const perms=permissionSet(user);
+    if(!(perms.has("sports.activity.manage")||perms.has("sports.registration.manage")||perms.has("admin.manage")))throw new Error("FORBIDDEN");
+    const rows=(await prisma.sportsActivity.findMany({include:{category:true,_count:{select:{registrations:{where:{status:"CONFIRMED"}},waitingList:{where:{status:{in:["WAITING","CALLED"]}}}}}},orderBy:{name:"asc"}})).map(a=>({atividade:a.name,modalidade:a.category.name,vagas:a.capacity,inscritos:a._count.registrations,espera:a._count.waitingList,status:a.status}));
+    const f=req.nextUrl.searchParams.get("format")??"csv";
+    if(f==="xlsx")return new NextResponse(toXlsx(rows,"Esporte"),{headers:{"Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","Content-Disposition":'attachment; filename="esporte.xlsx"'}});
+    if(f==="pdf")return new NextResponse(await toPdf("Relatório de Esporte",rows),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="esporte.pdf"'}});
+    return new NextResponse(toCsv(rows),{headers:{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":'attachment; filename="esporte.csv"'}});
+  }catch(e){return handleRouteError(e)}
+}

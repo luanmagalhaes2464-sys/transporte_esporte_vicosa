@@ -130,6 +130,20 @@ async function main() {
     create: { periodId: transportPeriod.id, schoolId: escola.id }
   });
 
+  const defaultDocsMarker = await prisma.systemSetting.findUnique({ where: { key: "transport_2027_default_documents_initialized" } });
+  if (!defaultDocsMarker) {
+    const existingRequiredDocs = await prisma.transportDocumentRequirement.count({ where: { periodId: transportPeriod.id, active: true } });
+    if (existingRequiredDocs === 0) {
+      await prisma.transportDocumentRequirement.createMany({
+        data: [
+          { periodId: transportPeriod.id, name: "Comprovante de matrícula", required: true, active: true },
+          { periodId: transportPeriod.id, name: "Comprovante de residência", required: true, active: true }
+        ]
+      });
+    }
+    await prisma.systemSetting.create({ data: { key: "transport_2027_default_documents_initialized", value: "true", public: false } });
+  }
+
   await prisma.vehicle.upsert({
     where: { plate: "ABC1D23" }, update: {},
     create: { identification: "Ônibus 04", plate: "ABC1D23", type: VehicleType.BUS, capacity: 44, accessible: true, status: VehicleStatus.AVAILABLE }

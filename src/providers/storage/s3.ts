@@ -12,7 +12,13 @@ function config() {
 export class S3StorageProvider implements StorageProvider {
   private client() {
     const e = config();
-    return new S3Client({ region: e.STORAGE_REGION, endpoint: e.STORAGE_ENDPOINT, forcePathStyle: Boolean(e.STORAGE_ENDPOINT), credentials: { accessKeyId: e.STORAGE_ACCESS_KEY_ID!, secretAccessKey: e.STORAGE_SECRET_ACCESS_KEY! } });
+    return new S3Client({
+      region: e.STORAGE_REGION,
+      endpoint: e.STORAGE_ENDPOINT,
+      forcePathStyle: Boolean(e.STORAGE_ENDPOINT),
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      credentials: { accessKeyId: e.STORAGE_ACCESS_KEY_ID!, secretAccessKey: e.STORAGE_SECRET_ACCESS_KEY! }
+    });
   }
   async createUploadTarget(key: string, contentType: string) {
     const e = config();

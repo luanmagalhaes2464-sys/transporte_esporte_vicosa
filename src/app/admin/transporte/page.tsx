@@ -11,14 +11,20 @@ export const dynamic="force-dynamic";
 export default async function Page(){
   try{await requirePermission("school_transport.request.review")}catch{redirect("/cidadao")}
   const rows=await prisma.schoolTransportRequest.findMany({
-    include:{student:{include:{person:true}},school:true,period:true,address:true},
+    include:{
+      student:{include:{person:true}},
+      school:true,
+      period:{include:{documentRequirements:{where:{active:true,required:true}}}},
+      address:true,
+      documents:true
+    },
     orderBy:{createdAt:"desc"},
     take:200
   });
   const counts=await prisma.schoolTransportRequest.groupBy({by:["status"],_count:{_all:true}});
 
   return <AppShell admin>
-    <div className="page-head"><div><h1>Transporte Escolar</h1><p className="muted">Análise de solicitações e acompanhamento por status. Série e turno vêm do cadastro do aluno.</p></div></div>
+    <div className="page-head"><div><h1>Diretoria de Transporte</h1><p className="muted">Solicitações de transporte escolar, documentos obrigatórios e acompanhamento por status.</p></div></div>
     <AdminPeriodForm/>
     <div className="metric-grid">{counts.slice(0,4).map(c=><div className="metric" key={c.status}>{c.status}<strong>{c._count._all}</strong></div>)}</div>
     <section style={{marginBottom:20}}>
@@ -26,8 +32,17 @@ export default async function Page(){
       <p className="muted">Pontos residenciais são exibidos somente nesta área autorizada. Pontos próximos são agrupados.</p>
       <DemandMap points={rows.filter(r=>r.address.latitude&&r.address.longitude).map(r=>({id:r.id,lat:Number(r.address.latitude),lng:Number(r.address.longitude),label:r.student.person.fullName,school:r.school.name}))}/>
     </section>
-    <div className="table-wrap"><table><thead><tr><th>Protocolo</th><th>Aluno</th><th>Escola</th><th>Ano/série</th><th>Turno</th><th>Período</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      {rows.map(r=><tr key={r.id}><td>{r.protocol}</td><td>{r.student.person.fullName}</td><td>{r.school.name}</td><td>{r.grade||"—"}</td><td>{r.shift||"—"}</td><td>{r.period.name}</td><td><span className="status">{r.status}</span></td><td><TransportStatusAction id={r.id} status={r.status}/></td></tr>)}
+    <div className="table-wrap"><table><thead><tr><th>Protocolo</th><th>Aluno</th><th>Escola</th><th>Ano/série</th><th>Turno</th><th>Período</th><th>Documentos</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+      {rows.map(r=>{
+        const required=r.period.documentRequirements.length;
+        const attached=r.documents.filter(d=>d.transportRequirementId&&r.period.documentRequirements.some(req=>req.id===d.transportRequirementId)).length;
+        return <tr key={r.id}>
+          <td>{r.protocol}</td><td>{r.student.person.fullName}</td><td>{r.school.name}</td><td>{r.grade||"—"}</td><td>{r.shift||"—"}</td><td>{r.period.name}</td>
+          <td><strong>{attached}/{required}</strong>{r.documents.length>0&&<div style={{display:"grid",gap:4,marginTop:6}}>{r.documents.map(d=><a key={d.id} href={`/api/documents/${d.id}/download`} target="_blank" rel="noreferrer" style={{color:"#B51F2A",fontSize:12}}>Abrir {d.originalFilename}</a>)}</div>}</td>
+          <td><span className="status">{r.status}</span></td><td><TransportStatusAction id={r.id} status={r.status}/></td>
+        </tr>;
+      })}
+      {!rows.length&&<tr><td colSpan={9}>Nenhuma solicitação recebida até o momento.</td></tr>}
     </tbody></table></div>
   </AppShell>;
 }
