@@ -1,0 +1,50 @@
+name: Bootstrap source
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  bootstrap:
+    if: github.event.head_commit.message == 'chore: bootstrap source import'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bootstrap branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify source archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/issues/1/comments?per_page=100" --jq 'sort_by(.id) | .[].body' | tr -d '\r\n ' > /tmp/payload.b64
+          test "$(wc -c < /tmp/payload.b64)" -eq 294312
+          echo "4a276298d0dc9d9cee8d2303332ce774771918d5eb1d4d9bbcba5da7337a2643  /tmp/payload.b64" | sha256sum -c -
+          base64 -d /tmp/payload.b64 > /tmp/project.tar.xz
+          echo "739942e4c63aae22bd5f72337dd57a84ddce4dc4a3ce7554848ba15b8aa144e1  /tmp/project.tar.xz" | sha256sum -c -
+          tar -xJf /tmp/project.tar.xz -C .
+          rm -f .github/workflows/bootstrap.yml
+
+      - name: Commit source tree
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: import Portal Vicosa source"
+          git push origin main
+
+      - name: Remove temporary payload
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh api "repos/${GITHUB_REPOSITORY}/issues/1/comments?per_page=100" --jq '.[].id'); do
+            gh api -X DELETE "repos/${GITHUB_REPOSITORY}/issues/comments/${id}"
+          done
+          gh issue edit 1 --body "Bootstrap completed successfully. Temporary payload removed."
+          gh issue close 1
