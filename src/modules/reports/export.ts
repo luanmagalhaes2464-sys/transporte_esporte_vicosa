@@ -8,14 +8,15 @@ export function toCsv(rows: Record<string, unknown>[]) {
   return [headers.map(esc).join(","), ...rows.map(r => headers.map(h => esc(r[h])).join(","))].join("\n");
 }
 
-export function toXlsx(rows: Record<string, unknown>[], sheetName = "Relatório") {
+export function toXlsx(rows: Record<string, unknown>[], sheetName = "Relatório"): ArrayBuffer {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.json_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0,31));
-  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;\n  return Uint8Array.from(buffer).buffer;
+  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  return Uint8Array.from(buffer).buffer;
 }
 
-export async function toPdf(title: string, rows: Record<string, unknown>[]) {
+export async function toPdf(title: string, rows: Record<string, unknown>[]): Promise<ArrayBuffer> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
