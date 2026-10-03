@@ -112,3 +112,8 @@ th { background:#fafafa; color:#555; font-weight:700; }
 .mobile-app-menu a { padding:10px; border-radius:5px; }
 .mobile-app-menu a:hover { background:#f5f5f5; color:var(--red); }
 @media (max-width: 900px) { .mobile-app-menu { display:block; } }
+
+.app-header-inner { width:100%; min-height:72px; padding:0 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.footer-brand .brand-lockup > div:last-child > div:first-child { color:#fff; }
+.footer-brand .brand-subtitle { color:#d3d3d3 !important; }
+@media (max-width:600px) { .app-header-inner { padding:0 14px; } }

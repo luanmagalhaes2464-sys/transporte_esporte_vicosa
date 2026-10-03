@@ -20,6 +20,7 @@ const roles: Record<string, string[]> = {
   SCHOOL: ["profile.read", "school.read", "extracurricular.request.create", "fleet.trip.read"],
   EDUCATION: ["profile.read", "territory.read", "school.read", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "reports.read"],
   TRANSPORT: ["profile.read", "territory.read", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "reports.read"],
+  SECRETARIA: ["profile.read", "territory.read", "territory.manage", "territory.import", "territory.merge", "school.read", "school.manage", "school_transport.request.review", "school_transport.request.approve", "school_transport.period.manage", "extracurricular.request.review", "extracurricular.trip.assign_vehicle", "extracurricular.trip.assign_driver", "fleet.vehicle.manage", "fleet.driver.manage", "fleet.trip.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "citizens.read", "reports.read", "audit.read"],
   DRIVER: ["profile.read", "fleet.trip.read", "fleet.trip.execute"],
   SPORTS: ["profile.read", "territory.read", "sports.activity.read", "sports.activity.manage", "sports.registration.manage", "reports.read"],
   ADMIN: permissionCodes
@@ -67,9 +68,9 @@ async function main() {
 
   const centro = await prisma.neighborhood.findFirstOrThrow({ where: { municipalityId: municipality.id, normalizedName: normalizeText("Centro") } });
   const escola = await prisma.school.upsert({
-    where: { id: "00000000-0000-0000-0000-000000000101" },
+    where: { id: "00000000-0000-4000-8000-000000000101" },
     update: {},
-    create: { id: "00000000-0000-0000-0000-000000000101", municipalityId: municipality.id, name: "Escola Municipal Exemplo", code: "EX-001", neighborhoodId: centro.id, active: true }
+    create: { id: "00000000-0000-4000-8000-000000000101", municipalityId: municipality.id, name: "Escola Municipal Exemplo", code: "EX-001", neighborhoodId: centro.id, active: true }
   });
 
   await prisma.vehicle.upsert({

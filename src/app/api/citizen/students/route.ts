@@ -4,10 +4,49 @@ import { prisma } from "@/lib/prisma";
 import { digitsOnly, isValidCpf } from "@/lib/normalize";
 import { requireUser } from "@/security/authorization";
 import { handleRouteError } from "@/lib/http";
-const schema = z.object({ fullName:z.string().min(3), cpf:z.string().optional().transform(v=>v?digitsOnly(v):undefined), birthDate:z.string().date(), schoolId:z.string().uuid().optional(), grade:z.string().optional(), shift:z.string().optional(), relation:z.string().min(2).default("Responsável") });
+
+const RELATIONS = ["Pai","Mãe","Avô","Avó","Padrasto","Madrasta","Tio","Tia","Primo","Prima","Responsável legal","Outro"] as const;
+
+const schema = z.object({
+  fullName: z.string().trim().min(3, "Informe o nome completo do aluno."),
+  cpf: z.string().optional().transform(v => v ? digitsOnly(v) : undefined),
+  birthDate: z.string().min(1, "Informe a data de nascimento.").refine(v => !Number.isNaN(new Date(`${v}T12:00:00Z`).getTime()), "Informe uma data de nascimento válida."),
+  schoolId: z.string().uuid("Selecione uma escola válida.").optional(),
+  grade: z.string().trim().optional(),
+  shift: z.string().trim().optional(),
+  relation: z.enum(RELATIONS),
+  relationOther: z.string().trim().max(80).optional()
+}).superRefine((value, ctx) => {
+  if (value.relation === "Outro" && !value.relationOther) {
+    ctx.addIssue({ code: "custom", path: ["relationOther"], message: "Especifique sua relação com o aluno." });
+  }
+});
+
 export async function GET() {
-  try { const u=await requireUser(); const g=await prisma.guardian.findFirst({where:{personId:u.personId},include:{students:{include:{student:{include:{person:true,school:true}}}}}}); return NextResponse.json(g?.students.map(x=>x.student)??[]); } catch(e){return handleRouteError(e)}
+  try {
+    const u = await requireUser();
+    const g = await prisma.guardian.findFirst({ where: { personId: u.personId }, include: { students: { include: { student: { include: { person: true, school: true } } } } } });
+    return NextResponse.json(g?.students.map(x => x.student) ?? []);
+  } catch (e) { return handleRouteError(e); }
 }
-export async function POST(req:NextRequest){
-  try{const u=await requireUser(); const v=schema.parse(await req.json()); if(v.cpf && !isValidCpf(v.cpf)) throw new Error("INVALID_CPF"); const student=await prisma.$transaction(async tx=>{const guardian=await tx.guardian.upsert({where:{personId:u.personId},update:{},create:{personId:u.personId}}); const p=await tx.person.create({data:{fullName:v.fullName,cpf:v.cpf||null,birthDate:new Date(`${v.birthDate}T12:00:00Z`)}}); const s=await tx.student.create({data:{personId:p.id,schoolId:v.schoolId,grade:v.grade,shift:v.shift}}); await tx.studentGuardian.create({data:{studentId:s.id,guardianId:guardian.id,relation:v.relation,primary:true}}); return s;}); return NextResponse.json(student,{status:201});}catch(e){return handleRouteError(e)}
+
+export async function POST(req: NextRequest) {
+  try {
+    const u = await requireUser();
+    const v = schema.parse(await req.json());
+    if (v.cpf && !isValidCpf(v.cpf)) throw new Error("INVALID_CPF");
+    if (v.schoolId) {
+      const school = await prisma.school.findFirst({ where: { id: v.schoolId, active: true }, select: { id: true } });
+      if (!school) throw new Error("SCHOOL_NOT_AVAILABLE");
+    }
+    const relation = v.relation === "Outro" ? v.relationOther!.trim() : v.relation;
+    const student = await prisma.$transaction(async tx => {
+      const guardian = await tx.guardian.upsert({ where: { personId: u.personId }, update: {}, create: { personId: u.personId } });
+      const p = await tx.person.create({ data: { fullName: v.fullName, cpf: v.cpf || null, birthDate: new Date(`${v.birthDate}T12:00:00Z`) } });
+      const s = await tx.student.create({ data: { personId: p.id, schoolId: v.schoolId, grade: v.grade || null, shift: v.shift || null } });
+      await tx.studentGuardian.create({ data: { studentId: s.id, guardianId: guardian.id, relation, primary: true } });
+      return s;
+    });
+    return NextResponse.json(student, { status: 201 });
+  } catch (e) { return handleRouteError(e); }
 }

@@ -54,7 +54,14 @@ const known: Record<string, { message: string; status: number }> = {
 
 export function handleRouteError(error: unknown) {
   if (error instanceof ZodError) {
-    return NextResponse.json({ error: "Dados inválidos.", details: error.flatten() }, { status: 422 });
+    return NextResponse.json({
+      error: "Revise os campos informados.",
+      issues: error.issues.map(issue => ({
+        field: issue.path.join("."),
+        message: issue.message
+      })),
+      details: error.flatten()
+    }, { status: 422 });
   }
   if (error instanceof Error && error.message === "UNAUTHORIZED") return jsonError("Não autenticado.", 401);
   if (error instanceof Error && error.message === "FORBIDDEN") return jsonError("Sem permissão.", 403);

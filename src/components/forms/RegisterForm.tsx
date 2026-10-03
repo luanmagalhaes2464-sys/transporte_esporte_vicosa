@@ -2,6 +2,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const RELATIONS = ["Pai","Mãe","Avô","Avó","Padrasto","Madrasta","Tio","Tia","Primo","Prima","Responsável legal","Outro"] as const;
+
 function ageFromIso(value: string) {
   if (!value) return null;
   const birth = new Date(`${value}T12:00:00`);
@@ -12,10 +14,16 @@ function ageFromIso(value: string) {
   return age;
 }
 
+function errorMessages(payload: any): string[] {
+  if (Array.isArray(payload?.issues) && payload.issues.length) return payload.issues.map((x: { message: string }) => x.message);
+  return [payload?.error || "Não foi possível criar a conta."];
+}
+
 export function RegisterForm() {
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [birthDate, setBirthDate] = useState("");
+  const [guardianRelation, setGuardianRelation] = useState("Responsável legal");
   const router = useRouter();
   const minor = useMemo(() => {
     const age = ageFromIso(birthDate);
@@ -23,13 +31,17 @@ export function RegisterForm() {
   }, [birthDate]);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setLoading(true); setError("");
+    e.preventDefault();
+    setLoading(true);
+    setErrors([]);
     const f = new FormData(e.currentTarget);
     const body = Object.fromEntries(f.entries());
     const r = await fetch("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const j = await r.json(); setLoading(false);
-    if (!r.ok) return setError(j.error || "Não foi possível criar a conta.");
-    router.push("/cidadao"); router.refresh();
+    const j = await r.json();
+    setLoading(false);
+    if (!r.ok) return setErrors(errorMessages(j));
+    router.push("/cidadao");
+    router.refresh();
   }
 
   return <form onSubmit={submit} className="form-grid">
@@ -46,12 +58,13 @@ export function RegisterForm() {
         <div className="field full"><label>Nome do responsável</label><input name="guardianFullName" required={minor} /></div>
         <div className="field"><label>CPF do responsável</label><input name="guardianCpf" inputMode="numeric" required={minor} /></div>
         <div className="field"><label>Telefone do responsável</label><input name="guardianPhone" type="tel" required={minor} /></div>
-        <div className="field full"><label>Relação com o aluno</label><input name="guardianRelation" placeholder="Ex.: mãe, pai, avó, responsável legal" required={minor} /></div>
+        <div className="field full"><label>Relação com o aluno</label><select name="guardianRelation" value={guardianRelation} onChange={e => setGuardianRelation(e.target.value)} required={minor}>{RELATIONS.map(item => <option key={item} value={item}>{item}</option>)}</select></div>
+        {guardianRelation === "Outro" && <div className="field full"><label>Especifique a relação</label><input name="guardianRelationOther" placeholder="Ex.: irmão, irmã, tutor..." required={minor} /></div>}
       </div>
     </fieldset>}
 
     <div className="field full"><label>Senha</label><input name="password" type="password" minLength={10} autoComplete="new-password" required /><small className="muted">Use pelo menos 10 caracteres.</small></div>
-    {error && <div className="alert field full">{error}</div>}
+    {errors.length > 0 && <div className="alert field full"><strong>Revise os dados:</strong><ul style={{ margin: "8px 0 0", paddingLeft: 20 }}>{errors.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
     <div className="field full"><button className="btn-primary" disabled={loading}>{loading ? "Criando conta..." : "Criar cadastro único"}</button></div>
   </form>;
 }
