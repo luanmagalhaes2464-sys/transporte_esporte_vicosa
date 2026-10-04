@@ -448,6 +448,7 @@ model Address {
   municipalityId    String             @db.Uuid
   addressType       AddressType
   streetId          String?            @db.Uuid
+  streetText        String?
   neighborhoodId    String?            @db.Uuid
   districtId        String?            @db.Uuid
   ruralLocalityId   String?            @db.Uuid

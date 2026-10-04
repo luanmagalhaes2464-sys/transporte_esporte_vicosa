@@ -30,7 +30,7 @@ export default async function Page(){
 
   const addressText=address
     ? (address.addressType==="URBAN"
-      ? [address.street?.name,address.number,address.neighborhood?.name].filter(Boolean).join(", ")
+      ? [address.street?.name||address.streetText,address.number,address.neighborhood?.name].filter(Boolean).join(", ")
       : [address.ruralLocality?.name,address.ruralRoad,address.km].filter(Boolean).join(", "))
     : "";
 

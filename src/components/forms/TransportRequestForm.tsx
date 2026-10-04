@@ -17,6 +17,7 @@ type Address = {
   addressType: "URBAN" | "RURAL";
   number?: string | null;
   street?: { name: string } | null;
+  streetText?: string | null;
   neighborhood?: { name: string } | null;
   ruralLocality?: { name: string } | null;
   ruralRoad?: string | null;
@@ -26,7 +27,7 @@ type Address = {
 function addressLabel(a?: Address) {
   if (!a) return "";
   return a.addressType === "URBAN"
-    ? [a.street?.name, a.number, a.neighborhood?.name].filter(Boolean).join(", ")
+    ? [a.street?.name || a.streetText, a.number, a.neighborhood?.name].filter(Boolean).join(", ")
     : [a.ruralLocality?.name, a.ruralRoad, a.km].filter(Boolean).join(", ");
 }
 

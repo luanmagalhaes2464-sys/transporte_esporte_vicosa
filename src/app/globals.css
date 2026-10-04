@@ -154,3 +154,10 @@ th { background:#fafafa; color:#555; font-weight:700; }
 .dashboard-section h2 { margin-bottom:6px; }
 @media (max-width:1100px) { .dashboard-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:600px) { .dashboard-filters { grid-template-columns:1fr; padding:14px; } .dashboard-filter-actions > * { flex:1; } }
+
+.status-filter-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:12px; }
+.status-filter-card { color:var(--text); transition:border-color .15s ease,background .15s ease; }
+.status-filter-card:hover { border-color:var(--red); }
+.status-filter-card.selected { border:2px solid var(--red); background:#fff8f8; }
+.status-filter-card strong { color:var(--red); }
+#solicitacoes { scroll-margin-top:18px; }

@@ -30,10 +30,25 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
     if(digits.length!==8)return;
     const r=await fetch(`/api/cep/${digits}`);const j=await r.json();
     if(!r.ok)return;
-    if(j.matches?.street){const x={type:"STREET",...j.matches.street};setStreet(x);setStreetText(x.name)}
-    else if(j.street){setStreetText(j.street);await search(j.street)}
-    if(j.matches?.neighborhood){const x={type:"NEIGHBORHOOD",...j.matches.neighborhood};setNeighborhood(x);setNeighborhoodText(x.name)}
-    else if(j.neighborhood){setNeighborhoodText(j.neighborhood);await search(j.neighborhood)}
+    setCep(j.cep||digits);
+
+    if(j.matches?.street){
+      const x={type:"STREET",...j.matches.street};
+      setStreet(x);setStreetText(x.name);
+    } else if(j.street){
+      setStreet(null);setStreetText(j.street);
+    }
+
+    if(j.matches?.neighborhood){
+      const x={type:"NEIGHBORHOOD",...j.matches.neighborhood};
+      setNeighborhood(x);setNeighborhoodText(x.name);
+    } else if(j.neighborhood){
+      setNeighborhood(null);setNeighborhoodText(j.neighborhood);
+      const sr=await fetch(`/api/territory/search?q=${encodeURIComponent(j.neighborhood)}`);
+      const sj=await sr.json();
+      const exact=(sj.results||[]).find((x:Result)=>x.type==="NEIGHBORHOOD"&&x.name.localeCompare(j.neighborhood,"pt-BR",{sensitivity:"base"})===0);
+      if(exact)setNeighborhood(exact);
+    }
   }
 
   async function lookup(){
@@ -41,6 +56,7 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
     const r=await fetch(`/api/cep/${cep}`);const j=await r.json();
     if(!r.ok){setMsg(j.error);return}
     await applyCep(cep);
+    setMsg("CEP consultado. Confira rua, bairro e número antes de salvar.");
   }
 
   async function readProof(e:React.ChangeEvent<HTMLInputElement>){
@@ -53,7 +69,7 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
       if(!r.ok)throw new Error(j.error||"Não foi possível ler o comprovante.");
       if(j.cep){setCep(j.cep);await applyCep(j.cep)}
       else{
-        if(j.street){setStreet(null);setStreetText(j.street);await search(j.street)}
+        if(j.street){setStreet(null);setStreetText(j.street)}
         if(j.neighborhood){setNeighborhood(null);setNeighborhoodText(j.neighborhood);await search(j.neighborhood)}
       }
       if(j.number)setNumber(String(j.number));
@@ -74,10 +90,34 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
   }
 
   async function submit(e:React.FormEvent<HTMLFormElement>){
-    e.preventDefault();const f=new FormData(e.currentTarget);
-    const body={addressType:type,cep:type==="URBAN"?cep:undefined,streetId:street?.id||null,neighborhoodId:neighborhood?.id||null,ruralLocalityId:rural?.id||null,number:number||undefined,complement:complement||undefined,ruralRoad:f.get("ruralRoad")||undefined,km:f.get("km")||undefined,referencePoint:f.get("referencePoint")||undefined,locationPrecision:position?"EXACT":(type==="URBAN"?"APPROXIMATE":"RURAL_LOCALITY"),latitude:position?.[0]??null,longitude:position?.[1]??null,locationSource:position?"USER_PIN":(type==="URBAN"?"CEP":undefined),originalInput:type==="URBAN"?`${streetText} | ${neighborhoodText}`:ruralText};
-    const r=await fetch("/api/citizen/addresses",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();
-    if(!r.ok)return setMsg(j.error||"Erro ao salvar endereço.");setMsg("Endereço salvo.");onCreated?.();
+    e.preventDefault();
+    setMsg("");
+    const f=new FormData(e.currentTarget);
+    if(type==="URBAN"&&!streetText.trim())return setMsg("Informe a rua.");
+    if(type==="URBAN"&&!neighborhood)return setMsg("Selecione o bairro correspondente na base municipal.");
+    const body={
+      addressType:type,
+      cep:type==="URBAN"?cep:undefined,
+      streetId:street?.id||null,
+      streetText:type==="URBAN"?streetText.trim():null,
+      neighborhoodId:neighborhood?.id||null,
+      ruralLocalityId:rural?.id||null,
+      number:number||undefined,
+      complement:complement||undefined,
+      ruralRoad:f.get("ruralRoad")||undefined,
+      km:f.get("km")||undefined,
+      referencePoint:f.get("referencePoint")||undefined,
+      locationPrecision:position?"EXACT":(type==="URBAN"?"APPROXIMATE":"RURAL_LOCALITY"),
+      latitude:position?.[0]??null,
+      longitude:position?.[1]??null,
+      locationSource:position?"USER_PIN":(type==="URBAN"?"CEP":undefined),
+      originalInput:type==="URBAN"?`${streetText.trim()} | ${neighborhoodText}`:ruralText
+    };
+    const r=await fetch("/api/citizen/addresses",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const j=await r.json();
+    if(!r.ok)return setMsg(j.error||"Erro ao salvar endereço.");
+    setMsg("Endereço salvo com rua, bairro e localização.");
+    onCreated?.();
   }
 
   return <form onSubmit={submit} className="form-grid">
@@ -89,16 +129,20 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
     </div>}
     <div className="field full"><label>Tipo de endereço</label><select value={type} onChange={e=>{setType(e.target.value as "URBAN"|"RURAL");setSuggestions([])}}><option value="URBAN">Urbano</option><option value="RURAL">Rural</option></select></div>
     {type==="URBAN"?<>
-      <div className="field"><label>CEP</label><input value={cep} onChange={e=>setCep(e.target.value)} placeholder="36570-000"/></div><div className="field" style={{justifyContent:"end"}}><button type="button" className="btn-secondary" onClick={lookup}>Consultar CEP</button></div>
-      <div className="field full"><label>Rua</label><input value={streetText} onChange={e=>{setStreet(null);setStreetText(e.target.value);search(e.target.value)}} placeholder="Comece a digitar a rua"/></div>
-      <div className="field full"><label>Bairro</label><input value={neighborhoodText} onChange={e=>{setNeighborhood(null);setNeighborhoodText(e.target.value);search(e.target.value)}} placeholder="Comece a digitar o bairro"/></div>
+      <div className="field"><label>CEP</label><input value={cep} onChange={e=>setCep(e.target.value)} placeholder="36570-000"/></div>
+      <div className="field" style={{justifyContent:"end"}}><button type="button" className="btn-secondary" onClick={lookup}>Consultar CEP</button></div>
+      <div className="field full"><label>Rua</label><input value={streetText} onChange={e=>{setStreet(null);setStreetText(e.target.value);search(e.target.value)}} placeholder="Rua"/></div>
+      <div className="field full"><label>Bairro</label><input value={neighborhoodText} onChange={e=>{setNeighborhood(null);setNeighborhoodText(e.target.value);search(e.target.value)}} placeholder="Bairro"/></div>
     </>:<>
       <div className="field full"><label>Localidade / comunidade rural</label><input value={ruralText} onChange={e=>{setRural(null);setRuralText(e.target.value);search(e.target.value)}} placeholder="Comece a digitar a localidade"/></div>
       <div className="field"><label>Estrada</label><input name="ruralRoad"/></div><div className="field"><label>Km / número</label><input name="km"/></div>
     </>}
-    {suggestions.length>0&&<div className="field full"><div style={{border:"1px solid #ddd",borderRadius:6,overflow:"hidden"}}>{suggestions.map(s=><button type="button" key={`${s.type}-${s.id}`} onClick={()=>select(s)} style={{display:"block",width:"100%",textAlign:"left",padding:10,border:0,borderBottom:"1px solid #eee",background:"white"}}>{s.name} <small className="muted">{s.type}</small></button>)}</div></div>}
-    <div className="field"><label>Número</label><input value={number} onChange={e=>setNumber(e.target.value)}/></div><div className="field"><label>Complemento</label><input value={complement} onChange={e=>setComplement(e.target.value)}/></div><div className="field full"><label>Ponto de referência</label><input name="referencePoint"/></div>
+    {suggestions.length>0&&<div className="field full"><div style={{border:"1px solid #ddd",borderRadius:6,overflow:"hidden"}}>{suggestions.map(s=><button type="button" key={`${s.type}-${s.id}`} onClick={()=>select(s)} style={{display:"block",width:"100%",textAlign:"left",padding:10,border:0,borderBottom:"1px solid #eee",background:"white"}}>{s.name} <small className="muted">{s.type==="STREET"?"Rua":s.type==="NEIGHBORHOOD"?"Bairro":"Localidade"}</small></button>)}</div></div>}
+    <div className="field"><label>Número</label><input value={number} onChange={e=>setNumber(e.target.value)}/></div>
+    <div className="field"><label>Complemento</label><input value={complement} onChange={e=>setComplement(e.target.value)}/></div>
+    <div className="field full"><label>Ponto de referência</label><input name="referencePoint"/></div>
     <div className="field full"><LocationPicker value={position} onChange={setPosition}/></div>
-    {msg&&<div className={`alert field full ${msg==="Endereço salvo."||msg.startsWith("Endereço lido")?"success":""}`}>{msg}</div>}<div className="field full"><button className="btn-primary">Salvar endereço</button></div>
+    {msg&&<div className={`alert field full ${msg.startsWith("Endereço salvo")||msg.startsWith("CEP consultado")||msg.startsWith("Endereço lido")?"success":""}`}>{msg}</div>}
+    <div className="field full"><button className="btn-primary">Salvar endereço</button></div>
   </form>;
 }
