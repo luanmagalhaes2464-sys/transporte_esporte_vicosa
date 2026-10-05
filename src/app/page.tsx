@@ -23,11 +23,13 @@ export default async function Home() {
     <section className="hero">
       <div className="hero-video" aria-hidden="true">
         <iframe
-          src="https://www.youtube-nocookie.com/embed/ynjLYLRom_o?autoplay=1&mute=1&loop=1&playlist=ynjLYLRom_o&controls=0&rel=0&modestbranding=1&playsinline=1"
+          src="https://www.youtube-nocookie.com/embed/ynjLYLRom_o?autoplay=1&mute=1&loop=1&playlist=ynjLYLRom_o&controls=0&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=0"
           title=""
           allow="autoplay; encrypted-media"
           tabIndex={-1}
+          loading="eager"
         />
+        <div className="hero-video-shield" />
       </div>
       <div className="hero-overlay"/>
       <div className="container-pv hero-front">
