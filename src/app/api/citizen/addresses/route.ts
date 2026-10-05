@@ -5,8 +5,7 @@ import { requireUser } from "@/security/authorization";
 import { digitsOnly } from "@/lib/normalize";
 import { handleRouteError } from "@/lib/http";
 import { audit } from "@/modules/audit/service";
-import { geocode } from "@/providers/geocoding";
-import { env } from "@/config/env";
+import { geocodeMunicipalAddress } from "@/modules/territory/geocode-address";
 
 const schema = z.object({
   addressType:z.enum(["URBAN","RURAL"]),
@@ -65,20 +64,25 @@ export async function POST(req:NextRequest){
     let locationSource=v.locationSource;
     let locationPrecision=v.locationPrecision;
 
-    if(v.addressType==="URBAN"&&(latitude==null||longitude==null)){
-      const streetName=street?.name||v.streetText||"";
-      const query=[streetName,v.number,neighborhood?.name,v.cep,env().MUNICIPALITY_NAME,env().MUNICIPALITY_STATE,"Brasil"].filter(Boolean).join(", ");
-      if(streetName&&query.length>=3){
-        try{
-          const results=await geocode(query);
-          const first=results[0];
-          if(first){
-            latitude=first.latitude;
-            longitude=first.longitude;
-            locationSource="GEOCODE";
-            locationPrecision="APPROXIMATE";
-          }
-        }catch{}
+    if(latitude==null||longitude==null){
+      const found=await geocodeMunicipalAddress({
+        addressType:v.addressType,
+        cep:v.cep,
+        number:v.number,
+        streetText:street?.name||v.streetText||null,
+        street:street?{name:street.name}:null,
+        neighborhood:neighborhood?{name:neighborhood.name}:null,
+        ruralLocality:v.addressType==="RURAL"&&v.ruralLocalityId
+          ? await prisma.ruralLocality.findUnique({where:{id:v.ruralLocalityId},select:{name:true}})
+          : null,
+        ruralRoad:v.ruralRoad,
+        km:v.km
+      });
+      if(found){
+        latitude=found.latitude;
+        longitude=found.longitude;
+        locationSource="GEOCODE";
+        locationPrecision="APPROXIMATE";
       }
     }
 

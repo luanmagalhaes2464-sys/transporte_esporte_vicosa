@@ -8,8 +8,7 @@ import { TransportStatusAction } from "@/components/forms/TransportStatusAction"
 import { AdminPeriodForm } from "@/components/forms/AdminPeriodForm";
 import { DemandMap } from "@/components/DemandMap";
 import { statusLabel } from "@/lib/labels";
-import { geocode } from "@/providers/geocoding";
-import { env } from "@/config/env";
+import { geocodeMunicipalAddress, readableAddress } from "@/modules/territory/geocode-address";
 
 export const dynamic="force-dynamic";
 
@@ -17,11 +16,7 @@ const STATUS_ORDER:SchoolTransportRequestStatus[]=[
   "SUBMITTED","UNDER_REVIEW","PENDING","APPROVED","DENIED","ROUTE_DEFINED","ACTIVE","CANCELED"
 ];
 
-function addressText(a:{street?:{name:string}|null;streetText?:string|null;number?:string|null;neighborhood?:{name:string}|null;ruralLocality?:{name:string}|null;ruralRoad?:string|null;km?:string|null;addressType:string}){
-  return a.addressType==="URBAN"
-    ? [a.street?.name||a.streetText,a.number,a.neighborhood?.name].filter(Boolean).join(", ")
-    : [a.ruralLocality?.name,a.ruralRoad,a.km].filter(Boolean).join(", ");
-}
+const addressText = readableAddress;
 
 export default async function Page({searchParams}:{searchParams:Promise<{status?:string}>}){
   try{await requirePermission("school_transport.request.review")}catch{redirect("/cidadao")}
@@ -40,22 +35,24 @@ export default async function Page({searchParams}:{searchParams:Promise<{status?
     take:300
   });
 
-  const missingCoordinates=allRows.filter(r=>!r.address.latitude||!r.address.longitude).slice(0,8);
-  for(const r of missingCoordinates){
-    const txt=addressText(r.address);
-    if(!txt)continue;
-    try{
-      const results=await geocode([txt,r.address.cep,env().MUNICIPALITY_NAME,env().MUNICIPALITY_STATE,"Brasil"].filter(Boolean).join(", "));
-      const first=results[0];
-      if(first){
-        await prisma.address.update({
-          where:{id:r.address.id},
-          data:{latitude:first.latitude,longitude:first.longitude,locationSource:"GEOCODE",locationPrecision:"APPROXIMATE"}
-        });
-        r.address.latitude=first.latitude as any;
-        r.address.longitude=first.longitude as any;
+  const uniqueMissing=[...new Map(
+    allRows
+      .filter(r=>r.address.latitude==null||r.address.longitude==null)
+      .map(r=>[r.address.id,r])
+  ).values()].slice(0,5);
+
+  for(const r of uniqueMissing){
+    const found=await geocodeMunicipalAddress(r.address);
+    if(found){
+      await prisma.address.update({
+        where:{id:r.address.id},
+        data:{latitude:found.latitude,longitude:found.longitude,locationSource:"GEOCODE",locationPrecision:"APPROXIMATE"}
+      });
+      for(const row of allRows.filter(x=>x.address.id===r.address.id)){
+        row.address.latitude=found.latitude as any;
+        row.address.longitude=found.longitude as any;
       }
-    }catch{}
+    }
   }
 
   const countsMap=new Map<SchoolTransportRequestStatus,number>();

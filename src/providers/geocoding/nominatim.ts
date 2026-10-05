@@ -8,9 +8,21 @@ export class NominatimProvider implements GeocodingProvider {
     url.searchParams.set("format", "jsonv2");
     url.searchParams.set("limit", "5");
     url.searchParams.set("countrycodes", "br");
-    const response = await fetch(url, { headers: { "User-Agent": "PortalVicosa/1.0 (municipal public service)" }, signal: AbortSignal.timeout(6000), cache: "no-store" });
+    url.searchParams.set("addressdetails", "1");
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "PortalVicosa/1.0 (https://transporte-esporte-vicosa.onrender.com)",
+        "Accept-Language": "pt-BR,pt;q=0.9"
+      },
+      signal: AbortSignal.timeout(8000),
+      cache: "no-store"
+    });
     if (!response.ok) throw new Error("GEOCODING_PROVIDER_ERROR");
+
     const rows = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
-    return rows.map(r => ({ latitude: Number(r.lat), longitude: Number(r.lon), label: r.display_name, provider: "nominatim" }));
+    return rows
+      .map(r => ({ latitude: Number(r.lat), longitude: Number(r.lon), label: r.display_name, provider: "nominatim" }))
+      .filter(r => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
   }
 }

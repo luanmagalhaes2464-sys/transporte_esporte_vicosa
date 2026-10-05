@@ -8,6 +8,7 @@ import { currentUser, permissionSet } from "@/security/authorization";
 import { prisma } from "@/lib/prisma";
 import { DemandMap } from "@/components/DemandMap";
 import { statusLabel } from "@/lib/labels";
+import { geocodeMunicipalAddress } from "@/modules/territory/geocode-address";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,7 @@ export default async function Page({searchParams}:{searchParams:Promise<{from?:s
     [transportRows,transportTotal,transportPending,transportApproved,transportActive,extraPending,tripsToday]=await Promise.all([
       prisma.schoolTransportRequest.findMany({
         where:visibleWhere,
-        include:{school:true,address:{include:{neighborhood:true,ruralLocality:true}}},
+        include:{school:true,address:{include:{street:true,neighborhood:true,ruralLocality:true}}},
         orderBy:{createdAt:"desc"},
         take:500
       }),
@@ -70,6 +71,28 @@ export default async function Page({searchParams}:{searchParams:Promise<{from?:s
       prisma.extracurricularRequest.count({where:{...(createdAt?{createdAt}:{}),status:{in:["REQUESTED","UNDER_REVIEW","PENDING"]}}}),
       prisma.trip.count({where:{startAt:{gte:startToday,lt:endToday},status:{not:"CANCELED"}}})
     ]);
+  }
+
+  if(canTransport&&transportRows.length){
+    const uniqueMissing=[...new Map(
+      transportRows
+        .filter(r=>r.address.latitude==null||r.address.longitude==null)
+        .map(r=>[r.address.id,r])
+    ).values()].slice(0,5);
+
+    for(const r of uniqueMissing){
+      const found=await geocodeMunicipalAddress(r.address);
+      if(found){
+        await prisma.address.update({
+          where:{id:r.address.id},
+          data:{latitude:found.latitude,longitude:found.longitude,locationSource:"GEOCODE",locationPrecision:"APPROXIMATE"}
+        });
+        for(const row of transportRows.filter(x=>x.address.id===r.address.id)){
+          row.address.latitude=found.latitude;
+          row.address.longitude=found.longitude;
+        }
+      }
+    }
   }
 
   let sportRows:any[]=[];
