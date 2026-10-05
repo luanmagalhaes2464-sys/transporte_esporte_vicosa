@@ -45,8 +45,10 @@ export async function POST(req:NextRequest){
     const v=schema.parse(await req.json());
     const setting=await prisma.systemSetting.findUniqueOrThrow({where:{key:"default_municipality_id"}});
     const municipalityId=setting.value;
+    if(v.addressType==="URBAN"&&(!v.cep||v.cep.length!==8))throw new Error("ADDRESS_CEP_REQUIRED");
     if(v.addressType==="URBAN"&&!v.neighborhoodId)throw new Error("NEIGHBORHOOD_REQUIRED");
     if(v.addressType==="URBAN"&&!v.streetId&&!v.streetText)throw new Error("STREET_REQUIRED");
+    if(v.addressType==="URBAN"&&!v.number?.trim())throw new Error("ADDRESS_NUMBER_REQUIRED");
     if(v.addressType==="RURAL"&&!v.ruralLocalityId)throw new Error("RURAL_LOCALITY_REQUIRED");
 
     const [neighborhood,street,district,rural]=await Promise.all([
@@ -85,6 +87,8 @@ export async function POST(req:NextRequest){
         locationPrecision="APPROXIMATE";
       }
     }
+
+    if(latitude==null||longitude==null)throw new Error("ADDRESS_LOCATION_REQUIRED");
 
     const streetText=v.addressType==="URBAN"?(street?.name||v.streetText||null):null;
 

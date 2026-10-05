@@ -93,7 +93,9 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
     e.preventDefault();
     setMsg("");
     const f=new FormData(e.currentTarget);
+    if(type==="URBAN"&&cep.replace(/\D/g,"").length!==8)return setMsg("Informe um CEP válido com 8 dígitos.");
     if(type==="URBAN"&&!streetText.trim())return setMsg("Informe a rua.");
+    if(type==="URBAN"&&!number.trim())return setMsg("Informe o número. Se o imóvel não tiver número, digite S/N.");
     if(type==="URBAN"&&!neighborhood)return setMsg("Selecione o bairro correspondente na base municipal.");
     const body={
       addressType:type,
@@ -116,7 +118,8 @@ export function AddressForm({onCreated}:{onCreated?:()=>void}){
     const r=await fetch("/api/citizen/addresses",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     const j=await r.json();
     if(!r.ok)return setMsg(j.error||"Erro ao salvar endereço.");
-    setMsg("Endereço salvo com rua, bairro e localização.");
+    if(j.latitude!=null&&j.longitude!=null)setPosition([Number(j.latitude),Number(j.longitude)]);
+    setMsg("Endereço salvo e localizado no mapa.");
     onCreated?.();
   }
 
